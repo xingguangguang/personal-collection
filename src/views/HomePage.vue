@@ -6,15 +6,15 @@
     />
     <div
       class="box"
-      @click="handleClickBox"
-      @dblclick="handleClickBox"
+      v-on="{ click: handleClickBox, contextmenu: rightKeyMenu }"
     >
+      <!-- 搜索框 -->
       <div class="search-bar">
         <!-- 输入框 -->
         <input
           class="search-input"
           v-model="keyword"
-          @keydown.enter="go"
+          @keydown="inputKeyword"
         />
         <!-- 搜索引擎logo -->
         <div class="search-icon">
@@ -46,6 +46,7 @@
           <img src="@/assets/homePage/search-icon.svg" />
         </div>
       </div>
+      <!-- 一言 -->
       <div
         class="hitokoto"
         title="点击复制，右键搜索"
@@ -102,7 +103,7 @@
 
 <script setup>
 import less from 'less';
-import { ref, onMounted } from 'vue';
+import { ref, onBeforeMount } from 'vue';
 import { getWallpaper, getQuote } from '@/api/request';
 import { ElMessage } from 'element-plus';
 import { CopyDocument, RefreshRight, Right } from '@element-plus/icons-vue';
@@ -122,15 +123,23 @@ const wallpaperUrl = ref('');
 const showCover = ref(false);
 const keyword = ref('');
 const quote = ref({});
+const associativeSearch = ref(true);
 
-onMounted(() => {
+onBeforeMount(() => {
   getWallpaper().then(res => {
     const url = res.images[0].url;
     const uhdUrl = url.replace(/1920x1080.jpg&rf/, 'UHD.jpg&rf');
     const uhdWallpaperUrl = 'https://cn.bing.com' + uhdUrl;
     wallpaperUrl.value = uhdWallpaperUrl;
   });
-  refreshQuote();
+  // refreshQuote();
+  // 监听搜索快捷键
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.code === 'KeyK') {
+      e.preventDefault();
+      toggleLocationSearchBox();
+    }
+  });
 });
 
 // 切换搜索引擎
@@ -151,9 +160,26 @@ const changeSE = index => {
   }, 100);
 };
 
-// 点击空白区域，目前没加任何逻辑
-const handleClickBox = () => {
-  searching.value = !searching.value;
+// 输入框按键事件
+const inputKeyword = event => {
+  if (event.code === 'Enter') {
+    go();
+  } else {
+    if (associativeSearch.value) {
+      // 联想搜索
+    }
+  }
+};
+// 跳转搜索
+const go = wd => {
+  let url = '';
+  if (wd) {
+    url = searchUrl[SEIndex.value] + wd;
+  } else {
+    url = searchUrl[SEIndex.value] + keyword.value;
+  }
+  keyword.value = '';
+  window.open(url, '_blank');
 };
 
 // 更新一言内容
@@ -166,18 +192,6 @@ const refreshQuote = event => {
   getQuote().then(res => {
     quote.value = res;
   });
-};
-
-// 跳转搜索
-const go = wd => {
-  let url = '';
-  if (wd) {
-    url = searchUrl[SEIndex.value] + wd;
-  } else {
-    url = searchUrl[SEIndex.value] + keyword.value;
-  }
-  keyword.value = '';
-  window.open(url, '_blank');
 };
 
 // 一言内容复制到剪切板
@@ -210,6 +224,20 @@ const toAWord = event => {
     event.stopPropagation();
   }
   window.open('https://developer.hitokoto.cn/', '_blank');
+};
+
+// 切换本地搜索框的显隐
+const toggleLocationSearchBox = () => {
+  console.log('toggleLocationSearchBox');
+};
+
+// 点击空白区域，目前没加任何逻辑
+const handleClickBox = () => {
+  searching.value = !searching.value;
+};
+
+const rightKeyMenu = e => {
+  console.log(e);
 };
 </script>
 
