@@ -1,0 +1,15 @@
+import request from '@/utils/request';
+
+export function getWallpaper() {
+  return request({
+    url: 'http://127.0.0.1:8080/bing/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN',
+    method: 'get'
+  });
+}
+
+export function getQuote() {
+  return request({
+    url: 'http://127.0.0.1:8080/hitokoto?c=a&c=b&c=c&c=d&c=i&c=k&encode=json&min_length=9',
+    method: 'get'
+  });
+}
