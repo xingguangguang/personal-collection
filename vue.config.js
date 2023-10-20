@@ -36,6 +36,13 @@ module.exports = defineConfig({
           secure: false,
           hostRewrite: { 'http://127.0.0.1:8080/': 'https://v1.hitokoto.cn/' },
           pathRewrite: { '/hitokoto': '' }
+        },
+        '/suggestion': {
+          target: 'https://suggestion.baidu.com/',
+          changeOrigin: true,
+          secure: false,
+          hostRewrite: { 'http://127.0.0.1:8080/': 'https://suggestion.baidu.com/' },
+          pathRewrite: { '/suggestion': '' }
         }
       }
     },

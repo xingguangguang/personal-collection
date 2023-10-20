@@ -2,22 +2,52 @@
   <div class="container">
     <img
       class="wallpaper"
+      v-if="!!wallpaperUrl"
       :src="wallpaperUrl"
     />
+    <!-- 搜索功能容器 -->
     <div
       class="box"
       v-on="{ click: handleClickBox, contextmenu: rightKeyMenu }"
     >
+      <!-- 切换快捷工具/搜索功能 -->
+      <el-icon
+        class="menu-icon"
+        @click="
+          () => {
+            searching = !searching;
+          }
+        "
+      >
+        <Menu v-if="searching" />
+        <HomeFilled v-if="!searching" />
+      </el-icon>
       <!-- 搜索框 -->
-      <div class="search-bar">
+      <div
+        class="search-bar"
+        v-if="searching"
+      >
         <!-- 输入框 -->
         <input
           class="search-input"
           v-model="keyword"
-          @keydown="inputKeyword"
+          @click="
+            event => {
+              event.stopPropagation();
+            }
+          "
+          @keydown.enter="() => go(wd)"
         />
         <!-- 搜索引擎logo -->
-        <div class="search-icon">
+        <div
+          class="search-icon"
+          @click="
+            event => {
+              event.stopPropagation();
+              showSearchIconList = !showSearchIconList;
+            }
+          "
+        >
           <img
             :src="iconList[SEIndex]"
             width="16"
@@ -25,7 +55,7 @@
           />
         </div>
         <!-- 搜索引擎列表 -->
-        <div class="search-icon-list">
+        <div :class="'search-icon-list ' + (showSearchIconList ? 'show' : 'hidden')">
           <div
             class="SE-button"
             v-for="(SE, index) in SEList"
@@ -41,11 +71,24 @@
         <!-- 搜索按钮 -->
         <div
           class="search-button"
-          @click="go"
+          @click="() => go(wd)"
         >
           <img src="@/assets/homePage/search-icon.svg" />
         </div>
+        <!-- 搜索建议列表 -->
+        <div class="suggestion-list suggestion-list-50">
+          <ul v-if="showSuggestionList">
+            <li
+              v-for="suggestion in suggestionList"
+              :key="suggestion"
+              @click="go(suggestion)"
+            >
+              {{ suggestion }}
+            </li>
+          </ul>
+        </div>
       </div>
+      <div class=""></div>
       <!-- 一言 -->
       <div
         class="hitokoto"
@@ -94,6 +137,7 @@
         </div>
       </div>
     </div>
+    <!-- 覆盖图层，阻断切换搜索引擎的hover，如果换成点击触发可以删除 -->
     <div
       class="cover"
       v-if="showCover"
@@ -103,10 +147,10 @@
 
 <script setup>
 import less from 'less';
-import { ref, onBeforeMount } from 'vue';
-import { getWallpaper, getQuote } from '@/api/request';
+import { ref, onBeforeMount, watch } from 'vue';
+import { homePageRequest } from '@/api/request';
 import { ElMessage } from 'element-plus';
-import { CopyDocument, RefreshRight, Right } from '@element-plus/icons-vue';
+import { CopyDocument, RefreshRight, Right, Menu, HomeFilled } from '@element-plus/icons-vue';
 import SEBaidu from '@/assets/homePage/SE-baidu.svg';
 import SEBing from '@/assets/homePage/SE-bing.svg';
 import SEGoogle from '@/assets/homePage/SE-google.svg';
@@ -118,27 +162,74 @@ const SEList = [SEBaidu, SEBing, SEGoogle];
 const iconList = [IconBaidu, IconBing, IconGoogle];
 const searchUrl = ['https://www.baidu.com/s?ie=utf-8&wd=', 'https://www.bing.com/search?q=', 'https://www.google.com/search?q='];
 const SEIndex = ref(0);
-const searching = ref(false);
+const showSearchIconList = ref(false);
 const wallpaperUrl = ref('');
 const showCover = ref(false);
 const keyword = ref('');
 const quote = ref({});
-const associativeSearch = ref(true);
+const searchSuggestion = ref(true);
+const suggestionList = ref([]);
+const showSuggestionList = ref(false);
+const searching = ref(true);
 
 onBeforeMount(() => {
-  getWallpaper().then(res => {
+  homePageRequest.getWallpaper().then(res => {
     const url = res.images[0].url;
     const uhdUrl = url.replace(/1920x1080.jpg&rf/, 'UHD.jpg&rf');
+    const normalUrl = url.replace(/1920x1080.jpg&rf/, '1280x720.jpg&rf');
     const uhdWallpaperUrl = 'https://cn.bing.com' + uhdUrl;
-    wallpaperUrl.value = uhdWallpaperUrl;
+    const highWallpaperUrl = 'https://cn.bing.com' + url;
+    const normalWallpaperUrl = 'https://cn.bing.com' + normalUrl;
+    wallpaperUrl.value = normalWallpaperUrl;
+    const imgHigh = new Image();
+    imgHigh.onload = function () {
+      imgHigh.onload = null;
+      wallpaperUrl.value = highWallpaperUrl;
+    };
+    imgHigh.src = highWallpaperUrl;
+    const imgUHD = new Image();
+    imgUHD.onload = function () {
+      imgHigh.onload = null;
+      imgUHD.onload = null;
+      wallpaperUrl.value = uhdWallpaperUrl;
+    };
+    imgUHD.src = uhdWallpaperUrl;
   });
-  // refreshQuote();
+  refreshQuote();
   // 监听搜索快捷键
   document.addEventListener('keydown', e => {
     if (e.ctrlKey && e.code === 'KeyK') {
       e.preventDefault();
       toggleLocationSearchBox();
     }
+  });
+});
+
+// 联想搜索，双向绑定的值改变时间晚于键盘事件触发时间，所以用监听属性，或者用在键盘事件中赋值替代双向绑定
+watch(keyword, async () => {
+  if (searchSuggestion.value === false) return;
+  if (!keyword.value) {
+    // 修改回调函数，避免接口返回覆盖此处逻辑
+    window.dealList = () => {
+      suggestionList.value = [];
+      showSuggestionList.value = false;
+    };
+    window.dealList();
+    return;
+  }
+  window.dealList = params => {
+    const { s: list } = params;
+    suggestionList.value = list;
+    showSuggestionList.value = !!list.length;
+  };
+  const params = {
+    ie: 'utf-8',
+    p: 3,
+    wd: keyword.value,
+    cb: 'dealList'
+  };
+  homePageRequest.getSuggestion(params).then(res => {
+    eval(res);
   });
 });
 
@@ -160,16 +251,6 @@ const changeSE = index => {
   }, 100);
 };
 
-// 输入框按键事件
-const inputKeyword = event => {
-  if (event.code === 'Enter') {
-    go();
-  } else {
-    if (associativeSearch.value) {
-      // 联想搜索
-    }
-  }
-};
 // 跳转搜索
 const go = wd => {
   let url = '';
@@ -189,7 +270,7 @@ const refreshQuote = event => {
     event.preventDefault();
     event.stopPropagation();
   }
-  getQuote().then(res => {
+  homePageRequest.getQuote().then(res => {
     quote.value = res;
   });
 };
@@ -231,9 +312,10 @@ const toggleLocationSearchBox = () => {
   console.log('toggleLocationSearchBox');
 };
 
-// 点击空白区域，目前没加任何逻辑
+// 点击空白区域
 const handleClickBox = () => {
-  searching.value = !searching.value;
+  showSuggestionList.value = false;
+  showSearchIconList.value = false;
 };
 
 const rightKeyMenu = e => {
@@ -274,6 +356,19 @@ const rightKeyMenu = e => {
     left: 0;
     background-image: radial-gradient(rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.5) 100%), radial-gradient(rgba(0, 0, 0, 0) 33%, rgba(0, 0, 0, 0.3) 166%);
     // 内阴影
+    .menu-icon {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.35);
+      transition: color 0.5s;
+      cursor: pointer;
+      &:hover {
+        color: rgba(245, 245, 245, 0.7);
+        transition: all 0.5s;
+      }
+    }
     .search-bar {
       position: absolute;
       top: 200px;
@@ -288,75 +383,109 @@ const rightKeyMenu = e => {
         outline: none;
         padding: 0 20px 0 50px;
         font-size: 14px;
+        &::selection {
+          background-color: rgba(0, 0, 0, 0.3);
+          color: rgba(255, 255, 255, 1);
+        }
       }
       .search-icon {
         position: absolute;
         display: flex;
         justify-content: center;
         align-items: center;
-        top: 2px;
-        left: 22px;
-        transform: translateX(-50%);
-        width: 36px;
-        height: 36px;
-        border-radius: 18px;
+        top: 4px;
+        left: 4px;
+        // transform: translateX(-50%);
+        width: 32px;
+        height: 32px;
+        border-radius: 16px;
+        cursor: pointer;
+        &:hover {
+          background-color: white;
+          transition: all 0.5s;
+        }
       }
       .search-icon-list {
-        opacity: 0;
         position: absolute;
         z-index: 3;
-        top: 2px;
-        left: 22px;
-        transform: translateX(-50%);
         background-color: rgba(255, 255, 255, 1);
-        border-radius: 10px;
-        // width: 150px;
-        width: 36px;
-        height: 36px;
-        // padding: 10px 10px 20px;
+        border-radius: 5px;
         display: flex;
         flex-direction: column;
         align-items: center;
         overflow: hidden;
+        width: 150px;
+        height: 130px;
+        padding: 0 0 10px;
+        &.hidden {
+          transform: scale(1, 0);
+          transition-property: transform, top, left;
+          transition-duration: 0.3s;
+          top: -30px;
+        }
+        &.show {
+          transform: scale(1, 1);
+          transition-property: transform, top, left;
+          transition-duration: 0.3s;
+          top: 40px;
+        }
         .SE-button {
+          position: relative;
           height: 30px;
-          width: 0px;
+          width: 140px;
           border-radius: 15px;
           display: flex;
           justify-content: center;
           align-items: center;
           margin-top: 10px;
           cursor: pointer;
+          &:hover {
+            background-color: rgba(0, 0, 0, 0.3);
+            transition: all 0.5s ease-in-out;
+          }
         }
-        .SE-button:hover {
-          width: 110px;
-          background-color: rgba(0, 0, 0, 0.3);
-          transition: width 0.5s ease-in-out;
-        }
-      }
-      .search-icon-list:hover {
-        top: calc(-15px + (-40px * @SE-index));
-        opacity: 1;
-        width: 150px;
-        height: auto;
-        padding: 10px 10px 20px;
-        transition: all 0.3s;
       }
       .search-button {
         position: absolute;
         display: flex;
         justify-content: center;
         align-items: center;
-        top: 2px;
-        right: 22px;
-        transform: translateX(50%);
-        width: 36px;
-        height: 36px;
-        border-radius: 18px;
+        top: 4px;
+        right: 4px;
+        // transform: translateX(50%);
+        width: 32px;
+        height: 32px;
+        border-radius: 16px;
+        &:hover {
+          background-color: white;
+          transition: all 0.5s;
+        }
       }
-      .search-button:hover {
-        background-color: white;
-        transition: all 0.5s;
+      .suggestion-list {
+        background-color: rgba(60, 60, 60, 0.4);
+        transition: height 0.5s;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-top: 10px;
+        ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          li {
+            height: 30px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: left;
+            padding-left: 20px;
+            line-height: 30px;
+            cursor: pointer;
+            transition: padding-left 0.25s;
+            &:hover {
+              padding-left: 30px;
+              transition: padding-left 0.25s;
+              background-color: rgba(255, 255, 255, 0.3);
+            }
+          }
+        }
       }
     }
     .hitokoto {
@@ -384,6 +513,7 @@ const rightKeyMenu = e => {
         height: 100%;
         backdrop-filter: blur(2px);
         opacity: 0;
+        transition: opacity 0.7s;
       }
       .hitokoto-action {
         opacity: 0;
@@ -393,6 +523,15 @@ const rightKeyMenu = e => {
         transform: translateY(-50%);
         display: flex;
         flex-direction: column;
+        transition: opacity 0.7s;
+        .hitokoto-action-button {
+          width: 20px;
+          height: 20px;
+          border-radius: 8px;
+          &:hover {
+            background-color: rgba(245, 245, 245, 0.7);
+          }
+        }
         .hitokoto-action-button:first-child {
           margin-bottom: 5px;
         }
@@ -400,15 +539,30 @@ const rightKeyMenu = e => {
           margin-top: 5px;
         }
       }
-    }
-    .hitokoto:hover {
-      .hitokoto-blur {
-        opacity: 1;
-        transition: all 0.7s;
+      &:hover {
+        .hitokoto-blur {
+          opacity: 1;
+          transition: all 0.7s;
+        }
+        .hitokoto-action {
+          opacity: 1;
+          transition: all 0.7s;
+        }
       }
-      .hitokoto-action {
-        opacity: 1;
-        transition: all 0.7s;
+    }
+  }
+  .tools-box {
+    .home-icon {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.35);
+      transition: color 0.5s;
+      cursor: pointer;
+      &:hover {
+        color: rgba(245, 245, 245, 0.7);
+        transition: all 0.5s;
       }
     }
   }
