@@ -55,7 +55,7 @@
           />
         </div>
         <!-- 搜索引擎列表 -->
-        <div :class="'search-icon-list ' + (showSearchIconList ? 'show' : 'hidden')">
+        <div :class="'search-icon-list ' + (showSearchIconList ? 'show-search-list' : 'hidden-search-list')">
           <div
             class="SE-button"
             v-for="(SE, index) in SEList"
@@ -142,6 +142,39 @@
       class="cover"
       v-if="showCover"
     ></div>
+    <div
+      :class="`right-click-menu ${showRightClickMenu ? 'show' : 'hidden'}`"
+      ref="rightClickMenu"
+      @click="
+        () => {
+          showRightClickMenu = false;
+        }
+      "
+      @click.right="
+        e => {
+          e.preventDefault();
+        }
+      "
+    >
+      <div @click="previewImage">
+        <span>预览壁纸</span>
+        <el-icon>
+          <Picture />
+        </el-icon>
+      </div>
+      <div @click="downloadImage">
+        <span>下载壁纸</span>
+        <el-icon>
+          <Download />
+        </el-icon>
+      </div>
+      <div @click="downloadImage">
+        <span>设置</span>
+        <el-icon>
+          <Setting />
+        </el-icon>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -150,7 +183,7 @@ import less from 'less';
 import { ref, onBeforeMount, watch } from 'vue';
 import { homePageRequest } from '@/api/request';
 import { ElMessage } from 'element-plus';
-import { CopyDocument, RefreshRight, Right, Menu, HomeFilled } from '@element-plus/icons-vue';
+import { CopyDocument, RefreshRight, Right, Menu, HomeFilled, Download, Picture, Setting } from '@element-plus/icons-vue';
 import SEBaidu from '@/assets/homePage/SE-baidu.svg';
 import SEBing from '@/assets/homePage/SE-bing.svg';
 import SEGoogle from '@/assets/homePage/SE-google.svg';
@@ -171,6 +204,8 @@ const searchSuggestion = ref(true);
 const suggestionList = ref([]);
 const showSuggestionList = ref(false);
 const searching = ref(true);
+const rightClickMenu = ref(null);
+const showRightClickMenu = ref(false);
 
 onBeforeMount(() => {
   homePageRequest.getWallpaper().then(res => {
@@ -307,6 +342,33 @@ const toAWord = event => {
   window.open('https://developer.hitokoto.cn/', '_blank');
 };
 
+// 新窗口预览壁纸
+const previewImage = () => {
+  window.open(wallpaperUrl.value, '_blank');
+};
+
+// 下载壁纸
+const downloadImage = () => {
+  const xhr = new XMLHttpRequest();
+  xhr.open('get', wallpaperUrl.value);
+  xhr.responseType = 'blob';
+  xhr.onload = function () {
+    const a = document.createElement('a');
+    if (this.status !== 200) {
+      ElMessage.error('网络请求失败');
+      return;
+    }
+    const url = URL.createObjectURL(this.response); // this指向xhr
+    const now = new Date();
+    const today = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+    a.href = url;
+    a.download = 'wallpaper' + today;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+  xhr.send();
+};
+
 // 切换本地搜索框的显隐
 const toggleLocationSearchBox = () => {
   console.log('toggleLocationSearchBox');
@@ -316,10 +378,21 @@ const toggleLocationSearchBox = () => {
 const handleClickBox = () => {
   showSuggestionList.value = false;
   showSearchIconList.value = false;
+  showRightClickMenu.value = false;
 };
 
 const rightKeyMenu = e => {
-  console.log(e);
+  e.preventDefault();
+  const { clientWidth, clientHeight } = e.target;
+  const { clientX, clientY } = e;
+  showRightClickMenu.value = true;
+
+  const gapY = clientHeight - clientY;
+  rightClickMenu.value.style.top = gapY > 100 ? clientY + 'px' : 'auto';
+  rightClickMenu.value.style.bottom = gapY > 100 ? 'auto' : gapY + 'px';
+  const gapX = clientWidth - clientX;
+  rightClickMenu.value.style.left = gapX > 120 ? clientX + 'px' : 'auto';
+  rightClickMenu.value.style.right = gapX > 120 ? 'auto' : gapX + 'px';
 };
 </script>
 
@@ -354,18 +427,17 @@ const rightKeyMenu = e => {
     height: 100%;
     top: 0;
     left: 0;
-    background-image: radial-gradient(rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.5) 100%), radial-gradient(rgba(0, 0, 0, 0) 33%, rgba(0, 0, 0, 0.3) 166%);
-    // 内阴影
+    background-image: radial-gradient(rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.3) 100%), radial-gradient(rgba(0, 0, 0, 0) 33%, rgba(0, 0, 0, 0.3) 166%);
     .menu-icon {
       position: absolute;
       top: 10px;
       left: 10px;
       font-size: 20px;
-      color: rgba(255, 255, 255, 0.35);
+      color: rgba(255, 255, 255, 0.3);
       transition: color 0.5s;
       cursor: pointer;
       &:hover {
-        color: rgba(245, 245, 245, 0.7);
+        color: rgb(255, 255, 255);
         transition: all 0.5s;
       }
     }
@@ -408,7 +480,7 @@ const rightKeyMenu = e => {
       .search-icon-list {
         position: absolute;
         z-index: 3;
-        background-color: rgba(255, 255, 255, 1);
+        background-color: rgb(255, 255, 255);
         border-radius: 5px;
         display: flex;
         flex-direction: column;
@@ -417,13 +489,13 @@ const rightKeyMenu = e => {
         width: 150px;
         height: 130px;
         padding: 0 0 10px;
-        &.hidden {
+        &.hidden-search-list {
           transform: scale(1, 0);
           transition-property: transform, top, left;
           transition-duration: 0.3s;
           top: -30px;
         }
-        &.show {
+        &.show-search-list {
           transform: scale(1, 1);
           transition-property: transform, top, left;
           transition-duration: 0.3s;
@@ -462,7 +534,7 @@ const rightKeyMenu = e => {
         }
       }
       .suggestion-list {
-        background-color: rgba(60, 60, 60, 0.4);
+        background-color: rgba(0, 0, 0, 0.2);
         transition: height 0.5s;
         border-radius: 15px;
         overflow: hidden;
@@ -529,7 +601,7 @@ const rightKeyMenu = e => {
           height: 20px;
           border-radius: 8px;
           &:hover {
-            background-color: rgba(245, 245, 245, 0.7);
+            background-color: rgba(255, 255, 255, 0.6);
           }
         }
         .hitokoto-action-button:first-child {
@@ -561,9 +633,65 @@ const rightKeyMenu = e => {
       transition: color 0.5s;
       cursor: pointer;
       &:hover {
-        color: rgba(245, 245, 245, 0.7);
+        color: rgba(255, 255, 255, 0.6);
         transition: all 0.5s;
       }
+    }
+  }
+  .image-icon {
+    position: absolute;
+    right: 20px;
+    bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+    color: white;
+    i {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.6);
+      }
+    }
+    .download-icon {
+      margin: 5px 0;
+    }
+  }
+  .right-click-menu {
+    position: absolute;
+    box-sizing: border-box;
+    width: 120px;
+    height: 100px;
+    background-color: rgba(255, 255, 255, 0.6);
+    z-index: 1;
+    border-radius: 5px;
+    text-align: left;
+    padding: 10px 5px;
+    overflow: hidden;
+    box-shadow: rgb(0, 0, 0) 0 0 5px;
+    font-size: 12px;
+    & div {
+      height: 26px;
+      line-height: 26px;
+      padding: 0 5px;
+      border-radius: 8px;
+      & i {
+        float: right;
+        height: 26px;
+        line-height: 26px;
+      }
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.6);
+      }
+    }
+    &.show {
+      opacity: 1;
+      transition-property: opacity;
+      transition-duration: 0.4s;
+    }
+    &.hidden {
+      opacity: 0;
     }
   }
 }
