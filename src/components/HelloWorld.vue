@@ -1,163 +1,72 @@
 <template>
   <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,
-      <br />
-      check out the
-      <a
-        href="https://cli.vuejs.org"
-        target="_blank"
-        rel="noopener"
-      >
-        vue-cli documentation
-      </a>
-      .
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li>
-        <a
-          href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel"
-          target="_blank"
-          rel="noopener"
-        >
-          babel
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-router"
-          target="_blank"
-          rel="noopener"
-        >
-          router
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-vuex"
-          target="_blank"
-          rel="noopener"
-        >
-          vuex
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint"
-          target="_blank"
-          rel="noopener"
-        >
-          eslint
-        </a>
-      </li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li>
-        <a
-          href="https://vuejs.org"
-          target="_blank"
-          rel="noopener"
-        >
-          Core Docs
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://forum.vuejs.org"
-          target="_blank"
-          rel="noopener"
-        >
-          Forum
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://chat.vuejs.org"
-          target="_blank"
-          rel="noopener"
-        >
-          Community Chat
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://twitter.com/vuejs"
-          target="_blank"
-          rel="noopener"
-        >
-          Twitter
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://news.vuejs.org"
-          target="_blank"
-          rel="noopener"
-        >
-          News
-        </a>
-      </li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li>
-        <a
-          href="https://router.vuejs.org"
-          target="_blank"
-          rel="noopener"
-        >
-          vue-router
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://vuex.vuejs.org"
-          target="_blank"
-          rel="noopener"
-        >
-          vuex
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/vue-devtools#vue-devtools"
-          target="_blank"
-          rel="noopener"
-        >
-          vue-devtools
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://vue-loader.vuejs.org"
-          target="_blank"
-          rel="noopener"
-        >
-          vue-loader
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/awesome-vue"
-          target="_blank"
-          rel="noopener"
-        >
-          awesome-vue
-        </a>
-      </li>
-    </ul>
+    <h1 @click="toHomePage">{{ msg }}</h1>
+    <div style="display: flex">
+      <div style="width: 800px">
+        <Toolbar
+          style="border-bottom: 1px solid #ccc"
+          :editor="editorRef"
+          :defaultConfig="toolbarConfig"
+        />
+        <Editor
+          style="height: 500px; overflow-y: hidden"
+          v-model="valueHtml"
+          :defaultConfig="editorConfig"
+          @onCreated="handleCreated"
+          @onChange="handleChange"
+        />
+      </div>
+      <div
+        id="rich_text"
+        ref="richText"
+      ></div>
+    </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
-  }
+<script setup name="HelloWorld">
+import '@wangeditor/editor/dist/css/style.css';
+import { Editor, Toolbar } from '@wangeditor/editor-for-vue';
+import { useRouter } from 'vue-router';
+import { onBeforeUnmount, ref, shallowRef, onMounted } from 'vue';
+// import axios from 'axios';
+
+const msg = '起始页';
+const richText = ref();
+
+const router = useRouter();
+const toHomePage = () => {
+  router.push('/homePage');
+};
+// 编辑器实例，必须用 shallowRef
+const editorRef = shallowRef();
+
+// 内容 HTML
+const valueHtml = ref('<p>hello</p>');
+
+// 模拟 ajax 异步获取内容
+onMounted(() => {
+  // setTimeout(() => {
+  //   valueHtml.value = '<p>模拟 Ajax 异步设置内容</p>';
+  // }, 1500);
+});
+
+const toolbarConfig = {};
+const editorConfig = { placeholder: '请输入内容...' };
+
+// 组件销毁时，也及时销毁编辑器
+onBeforeUnmount(() => {
+  const editor = editorRef.value;
+  if (editor == null) return;
+  editor.destroy();
+});
+
+const handleCreated = editor => {
+  editorRef.value = editor; // 记录 editor 实例，重要！
+};
+const handleChange = () => {
+  console.log(richText.value);
+  richText.value.innerHTML = valueHtml.value;
 };
 </script>
 

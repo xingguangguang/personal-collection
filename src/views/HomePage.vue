@@ -215,6 +215,7 @@ onBeforeMount(() => {
     const uhdWallpaperUrl = 'https://cn.bing.com' + uhdUrl;
     const highWallpaperUrl = 'https://cn.bing.com' + url;
     const normalWallpaperUrl = 'https://cn.bing.com' + normalUrl;
+    console.log(uhdWallpaperUrl);
     wallpaperUrl.value = normalWallpaperUrl;
     const imgHigh = new Image();
     imgHigh.onload = function () {
@@ -489,17 +490,18 @@ const rightKeyMenu = e => {
         width: 150px;
         height: 130px;
         padding: 0 0 10px;
+        transform-origin: 20px 0;
+        top: 40px;
         &.hidden-search-list {
-          transform: scale(1, 0);
-          transition-property: transform, top, left;
+          transform: scale(0, 0);
+          transition-property: transform;
           transition-duration: 0.3s;
-          top: -30px;
         }
         &.show-search-list {
           transform: scale(1, 1);
-          transition-property: transform, top, left;
+          transition-property: transform;
           transition-duration: 0.3s;
-          top: 40px;
+          transition-timing-function: cubic-bezier(0.2, 0.5, 0.2, 1.2);
         }
         .SE-button {
           position: relative;

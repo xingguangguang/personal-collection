@@ -27,7 +27,8 @@ module.exports = defineConfig({
           target: 'https://cn.bing.com/',
           changeOrigin: true,
           secure: false,
-          // hostRewrite: { 'http://127.0.0.1:8080/': 'https://cn.bing.com/' },
+          hostRewrite: { 'http://127.0.0.1:8080/': 'https://cn.bing.com/' },
+          // hostRewrite: { 'http://127.0.0.1:8080/': 'http://127.0.0.1:8000/' },
           pathRewrite: { '/bing': '' }
         },
         '/hitokoto': {
