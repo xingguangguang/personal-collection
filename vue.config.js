@@ -5,6 +5,7 @@ function resolve(dir) {
 }
 
 module.exports = defineConfig({
+  productionSourceMap: false,
   transpileDependencies: true,
   css: {
     loaderOptions: {
@@ -27,7 +28,7 @@ module.exports = defineConfig({
           target: 'https://cn.bing.com/',
           changeOrigin: true,
           secure: false,
-          hostRewrite: { 'http://127.0.0.1:8080/': 'https://cn.bing.com/' },
+          hostRewrite: { 'http://localhost:8080/': 'https://cn.bing.com/' },
           // hostRewrite: { 'http://127.0.0.1:8080/': 'http://127.0.0.1:8000/' },
           pathRewrite: { '/bing': '' }
         },
@@ -35,14 +36,14 @@ module.exports = defineConfig({
           target: 'https://v1.hitokoto.cn/',
           changeOrigin: true,
           secure: false,
-          hostRewrite: { 'http://127.0.0.1:8080/': 'https://v1.hitokoto.cn/' },
+          hostRewrite: { 'http://localhost:8080/': 'https://v1.hitokoto.cn/' },
           pathRewrite: { '/hitokoto': '' }
         },
         '/suggestion': {
           target: 'https://suggestion.baidu.com/',
           changeOrigin: true,
           secure: false,
-          hostRewrite: { 'http://127.0.0.1:8080/': 'https://suggestion.baidu.com/' },
+          hostRewrite: { 'http://localhost:8080/': 'https://suggestion.baidu.com/' },
           pathRewrite: { '/suggestion': '' }
         }
       }
