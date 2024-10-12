@@ -1,3 +1,15 @@
+.icons-12 {
+  width: 12px;
+  height: 12px;
+}
+.icons-14 {
+  width: 14px;
+  height: 14px;
+}
+.icons-20 {
+  width: 100%;
+  height: 100%;
+}
 .blur {
   filter: blur(5px);
 }
@@ -20,6 +32,9 @@
     width: 100%;
     height: 100%;
   }
+  .bg-color {
+    background: linear-gradient(to bottom right, rgb(172, 246, 172) 28px, rgb(238, 175, 175) 77%, rgb(130, 237, 237));
+  }
   .box {
     position: absolute;
     z-index: 1;
@@ -32,7 +47,8 @@
       position: absolute;
       top: 10px;
       left: 10px;
-      font-size: 20px;
+      width: 20px;
+      height: 20px;
       color: rgba(255, 255, 255, 0.3);
       transition: color 0.5s;
       cursor: pointer;
@@ -53,7 +69,7 @@
         border: rgba(255, 255, 255, 0.6);
         background-color: rgba(245, 245, 245, 0.762);
         outline: none;
-        padding: 0 20px 0 50px;
+        padding: 0 20px 0 40px;
         font-size: 14px;
         &::selection {
           background-color: rgba(0, 0, 0, 0.3);
@@ -152,7 +168,7 @@
             line-height: 30px;
             cursor: pointer;
             transition: padding-left 0.25s;
-            &:hover {
+            &:hover, &.selected {
               padding-left: 30px;
               transition: padding-left 0.25s;
               background-color: rgba(255, 255, 255, 0.3);
@@ -201,6 +217,9 @@
           width: 20px;
           height: 20px;
           border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           &:hover {
             background-color: rgba(255, 255, 255, 0.6);
           }
@@ -277,11 +296,9 @@
       line-height: 26px;
       padding: 0 5px;
       border-radius: 8px;
-      & i {
-        float: right;
-        height: 26px;
-        line-height: 26px;
-      }
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       &:hover {
         background-color: rgba(255, 255, 255, 0.6);
       }

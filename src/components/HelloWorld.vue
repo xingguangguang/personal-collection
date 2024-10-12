@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
     <h1 @click="toHomePage">{{ msg }}</h1>
-    <div style="display: flex">
+    <div style="display: flex; justify-content: space-between; padding: 0 16px">
       <div style="width: 800px">
         <Toolbar
           style="border-bottom: 1px solid #ccc"
@@ -42,7 +42,7 @@ const toHomePage = () => {
 const editorRef = shallowRef();
 
 // 内容 HTML
-const valueHtml = ref('<p>hello</p>');
+const valueHtml = ref('<p>Hello World</p>');
 
 // 模拟 ajax 异步获取内容
 onMounted(() => {
@@ -85,5 +85,12 @@ li {
 }
 a {
   color: #42b983;
+}
+#rich_text {
+  width: 50%;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background-color: rgba(133, 133, 133, 0.1);
+  border-radius: 5px;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <img
-      class="wallpaper"
+      class="wallpaper bg-color"
       v-if="!!wallpaperUrl"
       :src="wallpaperUrl"
     />
@@ -11,7 +11,7 @@
       v-on="{ click: handleClickBox, contextmenu: rightKeyMenu }"
     >
       <!-- 切换快捷工具/搜索功能 -->
-      <el-icon
+      <div
         class="menu-icon"
         @click="
           () => {
@@ -19,9 +19,15 @@
           }
         "
       >
-        <Menu v-if="searching" />
-        <HomeFilled v-if="!searching" />
-      </el-icon>
+        <Menu
+          class="icons-full"
+          v-if="searching"
+        />
+        <HomeFilled
+          class="icons-full"
+          v-if="!searching"
+        />
+      </div>
       <!-- 搜索框 -->
       <div
         class="search-bar"
@@ -29,24 +35,19 @@
       >
         <!-- 输入框 -->
         <input
+          ref="searchInputRef"
           class="search-input"
-          v-model="keyword"
-          @click="
-            event => {
-              event.stopPropagation();
-            }
-          "
+          v-model="searchKeyword"
+          @input="inputKeyword"
+          @focus="focusSearchInput"
+          @blur="blurSearchInput"
           @keydown.enter="() => go(wd)"
+          @click.stop
         />
         <!-- 搜索引擎logo -->
         <div
           class="search-icon"
-          @click="
-            event => {
-              event.stopPropagation();
-              showSearchIconList = !showSearchIconList;
-            }
-          "
+          @click.stop="showSearchIconList = !showSearchIconList"
         >
           <img
             :src="iconList[SEIndex]"
@@ -79,7 +80,8 @@
         <div class="suggestion-list suggestion-list-50">
           <ul v-if="showSuggestionList">
             <li
-              v-for="suggestion in suggestionList"
+              :class="index === suggestionIndex ? 'selected' : ''"
+              v-for="(suggestion, index) in suggestionList"
               :key="suggestion"
               @click="go(suggestion)"
             >
@@ -113,27 +115,30 @@
           </span>
         </div>
         <div class="hitokoto-action">
-          <el-icon
+          <div
             class="hitokoto-action-button"
             title="复制"
-            v-on="{ click: copy, contextmenu: copy }"
+            @click.stop="copy"
+            @contextmenu.stop.prevent
           >
-            <CopyDocument />
-          </el-icon>
-          <el-icon
+            <CopyDocument class="icons-14" />
+          </div>
+          <div
             class="hitokoto-action-button"
             title="下一条"
-            v-on="{ click: refreshQuote, contextmenu: refreshQuote }"
+            @click.stop="refreshQuote"
+            @contextmenu.stop.prevent
           >
-            <RefreshRight />
-          </el-icon>
-          <el-icon
+            <RefreshRight class="icons-14" />
+          </div>
+          <div
             class="hitokoto-action-button"
             title="“为了一言的长久发展，我们恳求您在使用一言服务的同时尽可能地加入一言的链接”，点击进入《一言》"
-            v-on="{ click: toAWord, contextmenu: toAWord }"
+            @click.stop="toAWord"
+            @contextmenu.stop.prevent
           >
-            <Right />
-          </el-icon>
+            <Right class="icons-14" />
+          </div>
         </div>
       </div>
     </div>
@@ -157,22 +162,16 @@
       "
     >
       <div @click="previewImage">
-        <span>预览壁纸</span>
-        <el-icon>
-          <Picture />
-        </el-icon>
+        <span>预览壁纸(4k)</span>
+        <Picture class="icons-12" />
       </div>
       <div @click="downloadImage">
-        <span>下载壁纸</span>
-        <el-icon>
-          <Download />
-        </el-icon>
+        <span>下载壁纸(4k)</span>
+        <Download class="icons-12" />
       </div>
       <div @click="downloadImage">
         <span>设置</span>
-        <el-icon>
-          <Setting />
-        </el-icon>
+        <Setting class="icons-12" />
       </div>
     </div>
   </div>
@@ -180,10 +179,10 @@
 
 <script setup>
 import less from 'less';
-import { ref, onBeforeMount, watch } from 'vue';
+import { ref, onBeforeMount, onMounted } from 'vue';
 import { homePageRequest } from '@/api/request';
 import { ElMessage } from 'element-plus';
-import { CopyDocument, RefreshRight, Right, Menu, HomeFilled, Download, Picture, Setting } from '@element-plus/icons-vue';
+import { Menu, HomeFilled, CopyDocument, RefreshRight, Right, Download, Picture, Setting } from '@element-plus/icons-vue';
 import SEBaidu from '@/assets/homePage/SE-baidu.svg';
 import SEBing from '@/assets/homePage/SE-bing.svg';
 import SEGoogle from '@/assets/homePage/SE-google.svg';
@@ -196,79 +195,74 @@ const iconList = [IconBaidu, IconBing, IconGoogle];
 const searchUrl = ['https://www.baidu.com/s?ie=utf-8&wd=', 'https://www.bing.com/search?q=', 'https://www.google.com/search?q='];
 const SEIndex = ref(0);
 const showSearchIconList = ref(false);
+const searchInputRef = ref();
+const suggestionIndex = ref(-1);
 const wallpaperUrl = ref('');
+const uhdUrl = ref('');
 const showCover = ref(false);
-const keyword = ref('');
+const suggestionKeyword = ref('');
+const searchKeyword = ref('');
 const quote = ref({});
-const searchSuggestion = ref(true);
 const suggestionList = ref([]);
 const showSuggestionList = ref(false);
 const searching = ref(true);
 const rightClickMenu = ref(null);
 const showRightClickMenu = ref(false);
+let listenerAbortSignal = null; // 按键监听事件的信号对象，abort方法结束addEventListener监听时间
 
 onBeforeMount(() => {
   homePageRequest.getWallpaper().then(res => {
-    const url = res.images[0].url;
-    const uhdUrl = url.replace(/1920x1080.jpg&rf/, 'UHD.jpg&rf');
-    const normalUrl = url.replace(/1920x1080.jpg&rf/, '1280x720.jpg&rf');
-    const uhdWallpaperUrl = 'https://cn.bing.com' + uhdUrl;
-    const highWallpaperUrl = 'https://cn.bing.com' + url;
-    const normalWallpaperUrl = 'https://cn.bing.com' + normalUrl;
-    console.log(uhdWallpaperUrl);
-    wallpaperUrl.value = normalWallpaperUrl;
-    const imgHigh = new Image();
-    imgHigh.onload = function () {
-      imgHigh.onload = null;
-      wallpaperUrl.value = highWallpaperUrl;
-    };
-    imgHigh.src = highWallpaperUrl;
-    const imgUHD = new Image();
-    imgUHD.onload = function () {
-      imgHigh.onload = null;
-      imgUHD.onload = null;
-      wallpaperUrl.value = uhdWallpaperUrl;
-    };
-    imgUHD.src = uhdWallpaperUrl;
+    const url = 'https://cn.bing.com' + res.images[0].url;
+    uhdUrl.value = url.replaceAll('1920x1080', 'UHD');
+    // const uhdWallpaperUrl = uhdUrl;
+    // const imgUHD = new Image();
+    // imgUHD.onload = function () {
+    //   imgUHD.onload = null;
+    //   wallpaperUrl.value = uhdWallpaperUrl;
+    // };
+    // imgUHD.src = uhdWallpaperUrl;
+    wallpaperUrl.value = url;
   });
   refreshQuote();
-  // 监听搜索快捷键
-  document.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.code === 'KeyK') {
-      e.preventDefault();
-      toggleLocationSearchBox();
-    }
-  });
+});
+onMounted(() => {
+  searchInputRef.value.focus();
 });
 
-// 联想搜索，双向绑定的值改变时间晚于键盘事件触发时间，所以用监听属性，或者用在键盘事件中赋值替代双向绑定
-watch(keyword, async () => {
-  if (searchSuggestion.value === false) return;
-  if (!keyword.value) {
+// 百度联想搜索
+const inputKeyword = () => {
+  suggestionIndex.value = -1;
+  suggestionKeyword.value = searchKeyword.value;
+  let dealList = null;
+  if (!searchKeyword.value) {
     // 修改回调函数，避免接口返回覆盖此处逻辑
-    window.dealList = () => {
+    dealList = () => {
       suggestionList.value = [];
       showSuggestionList.value = false;
     };
-    window.dealList();
+    dealList();
     return;
   }
-  window.dealList = params => {
+  dealList = params => {
     const { s: list } = params;
+    if (!list.length) return;
     suggestionList.value = list;
     showSuggestionList.value = !!list.length;
   };
   const params = {
     ie: 'utf-8',
     p: 3,
-    wd: keyword.value,
+    wd: suggestionKeyword.value,
     cb: 'dealList'
   };
   homePageRequest.getSuggestion(params).then(res => {
-    eval(res);
+    try {
+      eval(res);
+    } catch (error) {
+      console.error('百度返回参数出错');
+    }
   });
-});
-
+};
 // 切换搜索引擎
 const changeSE = index => {
   less
@@ -293,9 +287,8 @@ const go = wd => {
   if (wd) {
     url = searchUrl[SEIndex.value] + wd;
   } else {
-    url = searchUrl[SEIndex.value] + keyword.value;
+    url = searchUrl[SEIndex.value] + searchKeyword.value;
   }
-  keyword.value = '';
   window.open(url, '_blank');
 };
 
@@ -310,6 +303,85 @@ const refreshQuote = event => {
     quote.value = res;
   });
 };
+// 更新一言内容
+// const refreshQuote = () => {
+//   quote.value = {
+//     id: 5817,
+//     uuid: '6e7cc075-3fa1-42c3-b215-fdfe6cc56988',
+//     hitokoto: '若似月轮终皎洁，不辞冰雪为卿热。',
+//     type: 'i',
+//     from: '蝶恋花·辛苦最怜天上月',
+//     from_who: '纳兰性德',
+//     creator: 'a632079',
+//     creator_uid: 1044,
+//     reviewer: 1044,
+//     commit_from: 'api',
+//     created_at: '1586395491',
+//     length: 16
+//   };
+// };
+const focusSearchInput = () => {
+  inputKeyword();
+  if (listenerAbortSignal) {
+    listenerAbortSignal.abort();
+  }
+  listenerAbortSignal = new AbortController();
+  // 监听搜索快捷键
+  document.addEventListener(
+    'keydown',
+    e => {
+      if (Array.isArray(suggestionList.value)) {
+        if (e.code === 'ArrowDown') {
+          e.preventDefault();
+          // index加到超出建议长度了，就设置为-1，根据index值给输入框的文字赋值
+          suggestionIndex.value += 1;
+          if (suggestionIndex.value >= suggestionList.value.length) {
+            suggestionIndex.value = -1;
+          }
+          if (suggestionIndex.value === -1) {
+            searchKeyword.value = suggestionKeyword.value;
+          } else {
+            searchKeyword.value = suggestionList.value[suggestionIndex.value];
+          }
+        } else if (e.code === 'ArrowUp') {
+          e.preventDefault();
+          suggestionIndex.value -= 1;
+          if (suggestionIndex.value <= -2) {
+            suggestionIndex.value = suggestionList.value.length - 1;
+          }
+          if (suggestionIndex.value === -1) {
+            searchKeyword.value = suggestionKeyword.value;
+          } else {
+            searchKeyword.value = suggestionList.value[suggestionIndex.value];
+          }
+        }
+      }
+    },
+    { signal: listenerAbortSignal.signal }
+  );
+};
+const blurSearchInput = () => {
+  if (listenerAbortSignal) {
+    listenerAbortSignal.abort();
+  }
+  listenerAbortSignal = new AbortController();
+  // 监听搜索快捷键
+  document.addEventListener(
+    'keydown',
+    e => {
+      if (e.ctrlKey && e.code === 'KeyK') {
+        console.log('ctrl + K', e);
+        e.preventDefault();
+        toggleLocationSearchBox();
+      }
+      if (!e.ctrlKey && e.code === 'Slash') {
+        searchInputRef.value.focus();
+        e.preventDefault();
+      }
+    },
+    { signal: listenerAbortSignal.signal }
+  );
+};
 
 // 一言内容复制到剪切板
 const copy = event => {
@@ -317,20 +389,45 @@ const copy = event => {
     event.preventDefault();
     event.stopPropagation();
   }
-  if (window.navigator) {
-    window.navigator.clipboard
-      .writeText(quote.value.hitokoto)
-      .then(() => {
-        // ElMessage.success('内容已复制到剪切板');
-        ElMessage({
-          message: '内容已复制到剪切板',
-          type: 'success',
-          offset: 10
+  try {
+    if (window.navigator) {
+      window.navigator.clipboard
+        .writeText(quote.value.hitokoto)
+        .then(() => {
+          ElMessage({
+            message: '内容已复制到剪切板',
+            type: 'success',
+            offset: 10
+          });
+        })
+        .catch(err => {
+          console.error(err);
         });
-      })
-      .catch(err => {
-        console.error(err);
+    }
+  } catch (error) {
+    // 动态创建 textarea 标签
+    const textarea = document.createElement('textarea');
+    // 将该 textarea 设为 readonly 防止 iOS 下自动唤起键盘，同时将 textarea 移出可视区域
+    textarea.readOnly = 'readonly';
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    // 将要 copy 的值赋给 textarea 标签的 value 属性
+    textarea.value = quote.value.hitokoto;
+    // 将 textarea 插入到 body 中
+    document.body.appendChild(textarea);
+    // 选中值并复制
+    textarea.select();
+    const result = document.execCommand('Copy');
+    if (result) {
+      ElMessage({
+        message: '内容已复制到剪切板',
+        type: 'success',
+        offset: 10
       });
+    } else {
+      console.error('复制文本失败');
+    }
+    document.body.removeChild(textarea);
   }
 };
 
@@ -345,13 +442,13 @@ const toAWord = event => {
 
 // 新窗口预览壁纸
 const previewImage = () => {
-  window.open(wallpaperUrl.value, '_blank');
+  window.open(uhdUrl.value, '_blank');
 };
 
 // 下载壁纸
 const downloadImage = () => {
   const xhr = new XMLHttpRequest();
-  xhr.open('get', wallpaperUrl.value);
+  xhr.open('get', uhdUrl.value);
   xhr.responseType = 'blob';
   xhr.onload = function () {
     const a = document.createElement('a');
