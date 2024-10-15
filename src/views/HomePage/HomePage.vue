@@ -11,14 +11,7 @@
       v-on="{ click: handleClickBox, contextmenu: rightKeyMenu }"
     >
       <!-- 切换快捷工具/搜索功能 -->
-      <div
-        class="menu-icon"
-        @click="
-          () => {
-            searching = !searching;
-          }
-        "
-      >
+      <div class="menu-icon">
         <Menu
           class="icons-full"
           v-if="searching"
@@ -169,7 +162,10 @@
         <span>下载壁纸(4k)</span>
         <Download class="icons-12" />
       </div>
-      <div @click="downloadImage">
+      <div
+        @click.stop.prevent
+        class="not-allowed"
+      >
         <span>设置</span>
         <Setting class="icons-12" />
       </div>
@@ -213,14 +209,14 @@ let listenerAbortSignal = null; // 按键监听事件的信号对象，abort方�
 onBeforeMount(() => {
   homePageRequest.getWallpaper().then(res => {
     const url = 'https://cn.bing.com' + res.images[0].url;
-    uhdUrl.value = url.replaceAll('1920x1080', 'UHD');
-    // const uhdWallpaperUrl = uhdUrl;
-    // const imgUHD = new Image();
-    // imgUHD.onload = function () {
-    //   imgUHD.onload = null;
-    //   wallpaperUrl.value = uhdWallpaperUrl;
-    // };
-    // imgUHD.src = uhdWallpaperUrl;
+    const uhdWallpaperUrl = url.replaceAll('1920x1080', 'UHD');
+    uhdUrl.value = uhdWallpaperUrl;
+    const imgUHD = new Image();
+    imgUHD.onload = function () {
+      imgUHD.onload = null;
+      wallpaperUrl.value = uhdWallpaperUrl;
+    };
+    imgUHD.src = uhdWallpaperUrl;
     wallpaperUrl.value = url;
   });
   refreshQuote();
@@ -303,7 +299,7 @@ const refreshQuote = event => {
     quote.value = res;
   });
 };
-// 更新一言内容
+// 固定的一言内容，开发的时候用这个，避免频繁请求
 // const refreshQuote = () => {
 //   quote.value = {
 //     id: 5817,

@@ -3,21 +3,6 @@ import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from '@/views/HomePage/HomePage.vue';
 
 const routes = [
-  // {
-  //   path: '/',
-  //   name: 'home',
-  //   component: HomeView
-  // },
-  // {
-  //   path: '/about',
-  //   name: 'about',
-  //   component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
-  // },
-  // {
-  //   path: '/homePage',
-  //   name: 'HomePage',
-  //   component: () => import('@/views/HomePage/HomePage.vue')
-  // }
   {
     path: '/',
     name: 'home',
@@ -35,8 +20,17 @@ const routes = [
   },
   {
     path: '/tools',
+    redirect: '/tools/home',
+    component: () => import(/* webpackChunkName: "group-tools" */ '@/layout/ToolsAppMain.vue'),
     name: 'tools',
-    component: () => import('@/views/Tools/HomeView.vue')
+    children: [
+      {
+        path: 'home',
+        component: () => import('@/views/Tools/HomeView.vue'),
+        name: 'Tools',
+        meta: { title: '工具首页' }
+      }
+    ]
   }
 ];
 

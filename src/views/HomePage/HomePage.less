@@ -51,11 +51,12 @@
       height: 20px;
       color: rgba(255, 255, 255, 0.3);
       transition: color 0.5s;
-      cursor: pointer;
-      &:hover {
-        color: rgb(255, 255, 255);
-        transition: all 0.5s;
-      }
+      // cursor: pointer;
+      cursor: not-allowed;
+      // &:hover {
+      //   color: rgb(255, 255, 255);
+      //   transition: all 0.5s;
+      // }
     }
     .search-bar {
       position: absolute;
@@ -310,6 +311,10 @@
     }
     &.hidden {
       opacity: 0;
+    }
+    & .not-allowed:hover {
+      background-color: transparent;
+      cursor: not-allowed;
     }
   }
 }

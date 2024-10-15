@@ -36,7 +36,7 @@ const richText = ref();
 
 const router = useRouter();
 const toHomePage = () => {
-  router.push('/homePage');
+  router.push('/');
 };
 // 编辑器实例，必须用 shallowRef
 const editorRef = shallowRef();
