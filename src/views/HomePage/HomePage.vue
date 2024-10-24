@@ -436,7 +436,7 @@ const toAWord = event => {
     event.preventDefault();
     event.stopPropagation();
   }
-  window.open('https://developer.hitokoto.cn/', '_blank');
+  window.open('https://hitokoto.cn/', '_blank');
 };
 
 // 新窗口预览壁纸
