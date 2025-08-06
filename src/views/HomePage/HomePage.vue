@@ -126,7 +126,7 @@
           </div>
           <div
             class="hitokoto-action-button"
-            title="“为了一言的长久发展，我们恳求您在使用一言服务的同时尽可能地加入一言的链接”，点击进入《一言》"
+            title="服务由“一言”提供，点击进入“一言”"
             @click.stop="toAWord"
             @contextmenu.stop.prevent
           >
@@ -155,11 +155,11 @@
       "
     >
       <div @click="previewImage">
-        <span>预览壁纸(4k)</span>
+        <span>预览壁纸</span>
         <Picture class="icons-12" />
       </div>
       <div @click="downloadImage">
-        <span>下载壁纸(4k)</span>
+        <span>下载壁纸</span>
         <Download class="icons-12" />
       </div>
       <div
@@ -186,26 +186,35 @@ import IconBaidu from '@/assets/homePage/icon-baidu.svg';
 import IconBing from '@/assets/homePage/icon-bing.svg';
 import IconGoogle from '@/assets/homePage/icon-google.svg';
 
-const SEList = [SEBaidu, SEBing, SEGoogle];
-const iconList = [IconBaidu, IconBing, IconGoogle];
-const searchUrl = ['https://www.baidu.com/s?ie=utf-8&wd=', 'https://www.bing.com/search?q=', 'https://www.google.com/search?q='];
-const SEIndex = ref(0);
-const showSearchIconList = ref(false);
-const searchInputRef = ref();
-const suggestionIndex = ref(-1);
-const wallpaperUrl = ref('');
-const uhdUrl = ref('');
-const showCover = ref(false);
-const suggestionKeyword = ref('');
-const searchKeyword = ref('');
-const quote = ref({});
-const suggestionList = ref([]);
-const showSuggestionList = ref(false);
-const searching = ref(true);
-const rightClickMenu = ref(null);
+const SEList = [SEBaidu, SEBing, SEGoogle]; // 搜索引擎logo
+const iconList = [IconBaidu, IconBing, IconGoogle]; // 搜索引擎图标
+const searchUrl = ['https://www.baidu.com/s?ie=utf-8&wd=', 'https://www.bing.com/search?q=', 'https://www.google.com/search?q=']; // 搜索引擎地址
+const SEIndex = ref(0); // 当前选中的搜索引擎index
+const showSearchIconList = ref(false); // 显示搜索引擎选择框
+const searchInputRef = ref(); // 搜索框实例
+const suggestionIndex = ref(-1); // 当前选中的搜索建议
+const wallpaperUrl = ref(''); // 壁纸地址
+const uhdUrl = ref(''); // 高清壁纸地址
+const showCover = ref(false); // 阻断搜索引擎选择框的覆盖层
+const suggestionKeyword = ref(''); // 获取搜索建议的关键词
+const searchKeyword = ref(''); // 搜索框的内容，按上下方向键选择搜索建议时，会把建议赋值到这个变量
+const quote = ref({}); // 一言的内容
+const suggestionList = ref([]); // 搜索建议列表
+const showSuggestionList = ref(false); // 显示搜索建议列表
+const searching = ref(true); // 显示搜索功能（工具栏的功能没做，目前固定为true）
+const rightClickMenu = ref(null); // 右击菜单
 const showRightClickMenu = ref(false);
-let listenerAbortSignal = null; // 按键监听事件的信号对象，abort方法结束addEventListener监听时间
+let lastSuggestionTimestamp = 0; // 最新的搜索建议请求发出的时间戳
+/**
+ * 多个监听器可以绑定同一个AbortController对象的signal，调用abort方法结束所有绑定该对象的监听事件，无需调用removeEventListener
+ */
+let listenerAbortSignal = null; // 按键监听事件的信号对象
 
+/** 在页面挂载之前，
+ * 1、从缓存获取之前选中的搜索引擎
+ * 2、获取必应壁纸
+ * 3、获取一言
+ */
 onBeforeMount(() => {
   const lsSEIndex = Number(localStorage.getItem('SEIndex'));
   SEIndex.value = lsSEIndex;
@@ -223,30 +232,29 @@ onBeforeMount(() => {
   });
   refreshQuote();
 });
+// 聚焦到搜索框
 onMounted(() => {
   searchInputRef.value.focus();
 });
 
-// 百度联想搜索
+// 输入内容请求百度联想搜索接口
 const inputKeyword = () => {
   suggestionIndex.value = -1;
   suggestionKeyword.value = searchKeyword.value;
-  let dealList = null;
+  const timestamp = Date.now();
+  lastSuggestionTimestamp = timestamp;
   if (!searchKeyword.value) {
-    // 修改回调函数，避免接口返回覆盖此处逻辑
-    dealList = () => {
-      suggestionList.value = [];
-      showSuggestionList.value = false;
-    };
-    dealList();
+    suggestionList.value = [];
+    showSuggestionList.value = false;
     return;
   }
-  dealList = params => {
+  const dealList = params => {
+    if (lastSuggestionTimestamp !== timestamp) return;
     const { s: list } = params;
-    if (!list.length) return;
     suggestionList.value = list;
     showSuggestionList.value = !!list.length;
   };
+  console.log(dealList);
   const params = {
     ie: 'utf-8',
     p: 3,
@@ -292,35 +300,37 @@ const go = wd => {
 };
 
 // 更新一言内容
-const refreshQuote = event => {
-  if (event) {
-    console.log(event);
-    event.preventDefault();
-    event.stopPropagation();
-  }
-  homePageRequest.getQuote().then(res => {
-    quote.value = res;
-  });
-};
-// 固定的一言内容，开发的时候用这个，避免频繁请求
-// const refreshQuote = () => {
-//   quote.value = {
-//     id: 5817,
-//     uuid: '6e7cc075-3fa1-42c3-b215-fdfe6cc56988',
-//     hitokoto: '若似月轮终皎洁，不辞冰雪为卿热。',
-//     type: 'i',
-//     from: '蝶恋花·辛苦最怜天上月',
-//     from_who: '纳兰性德',
-//     creator: 'a632079',
-//     creator_uid: 1044,
-//     reviewer: 1044,
-//     commit_from: 'api',
-//     created_at: '1586395491',
-//     length: 16
-//   };
+// const refreshQuote = event => {
+//   if (event) {
+//     console.log(event);
+//     event.preventDefault();
+//     event.stopPropagation();
+//   }
+//   homePageRequest.getQuote().then(res => {
+//     quote.value = res;
+//   });
 // };
+// 固定的一言内容，开发的时候用这个，避免频繁请求
+const refreshQuote = () => {
+  quote.value = {
+    id: 5817,
+    uuid: '6e7cc075-3fa1-42c3-b215-fdfe6cc56988',
+    hitokoto: '若似月轮终皎洁，不辞冰雪为卿热。',
+    type: 'i',
+    from: '蝶恋花·辛苦最怜天上月',
+    from_who: '纳兰性德',
+    creator: 'a632079',
+    creator_uid: 1044,
+    reviewer: 1044,
+    commit_from: 'api',
+    created_at: '1586395491',
+    length: 16
+  };
+};
+/** 搜索框焦点事件，监听方向键↑↓ */
 const focusSearchInput = () => {
   inputKeyword();
+  // 先解绑所有的监听事件
   if (listenerAbortSignal) {
     listenerAbortSignal.abort();
   }
@@ -360,6 +370,7 @@ const focusSearchInput = () => {
   );
 };
 const blurSearchInput = () => {
+  // 先解绑所有的监听事件
   if (listenerAbortSignal) {
     listenerAbortSignal.abort();
   }
@@ -368,6 +379,7 @@ const blurSearchInput = () => {
   document.addEventListener(
     'keydown',
     e => {
+      console.log(e);
       if (e.ctrlKey && e.code === 'KeyK') {
         console.log('ctrl + K', e);
         e.preventDefault();
@@ -468,7 +480,8 @@ const downloadImage = () => {
 
 // 切换本地搜索框的显隐
 const toggleLocationSearchBox = () => {
-  console.log('toggleLocationSearchBox');
+  // console.log('toggleLocationSearchBox');
+  searchInputRef.value.focus();
 };
 
 // 点击空白区域
