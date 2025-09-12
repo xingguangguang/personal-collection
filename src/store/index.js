@@ -1,9 +1,3 @@
-import { createStore } from 'vuex';
+import { useSuggestionStore } from './search';
 
-export default createStore({
-  state: {},
-  getters: {},
-  mutations: {},
-  actions: {},
-  modules: {}
-});
+export { useSuggestionStore };

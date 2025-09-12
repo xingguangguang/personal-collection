@@ -43,7 +43,7 @@
           @click.stop="showSearchIconList = !showSearchIconList"
         >
           <img
-            :src="iconList[SEIndex]"
+            :src="currentSEInfo.icon"
             width="16"
             height="16"
           />
@@ -52,12 +52,12 @@
         <div :class="'search-icon-list ' + (showSearchIconList ? 'show-search-list' : 'hidden-search-list')">
           <div
             class="SE-button"
-            v-for="(SE, index) in SEList"
-            :key="index"
-            @click="changeSE(index)"
+            v-for="(SE, key) in searchEngineGroup"
+            :key="key"
+            @click="changeSE(key)"
           >
             <img
-              :src="SE"
+              :src="SE.logo"
               width="64"
             />
           </div>
@@ -174,22 +174,16 @@
 </template>
 
 <script setup>
-import less from 'less';
 import { ref, onBeforeMount, onMounted } from 'vue';
 import { homePageRequest } from '@/api/request';
 import { ElMessage } from 'element-plus';
 import { Menu, HomeFilled, CopyDocument, RefreshRight, Right, Download, Picture, Setting } from '@element-plus/icons-vue';
-import SEBaidu from '@/assets/homePage/SE-baidu.svg';
-import SEBing from '@/assets/homePage/SE-bing.svg';
-import SEGoogle from '@/assets/homePage/SE-google.svg';
-import IconBaidu from '@/assets/homePage/icon-baidu.svg';
-import IconBing from '@/assets/homePage/icon-bing.svg';
-import IconGoogle from '@/assets/homePage/icon-google.svg';
+import { useSuggestionStore } from '@/store';
+import { storeToRefs } from 'pinia';
+import { saveToClipBoard } from '@/utils/tools';
 
-const SEList = [SEBaidu, SEBing, SEGoogle]; // 搜索引擎logo
-const iconList = [IconBaidu, IconBing, IconGoogle]; // 搜索引擎图标
-const searchUrl = ['https://www.baidu.com/s?ie=utf-8&wd=', 'https://www.bing.com/search?q=', 'https://www.google.com/search?q=']; // 搜索引擎地址
-const SEIndex = ref(0); // 当前选中的搜索引擎index
+const suggestionStore = useSuggestionStore();
+const { searchEngineGroup, currentSEInfo } = storeToRefs(suggestionStore);
 const showSearchIconList = ref(false); // 显示搜索引擎选择框
 const searchInputRef = ref(); // 搜索框实例
 const suggestionIndex = ref(-1); // 当前选中的搜索建议
@@ -216,8 +210,6 @@ let listenerAbortSignal = null; // 按键监听事件的信号对象
  * 3、获取一言
  */
 onBeforeMount(() => {
-  const lsSEIndex = Number(localStorage.getItem('SEIndex'));
-  SEIndex.value = lsSEIndex;
   homePageRequest.getWallpaper().then(res => {
     const url = 'https://cn.bing.com' + res.images[0].url;
     const uhdWallpaperUrl = url.replaceAll('1920x1080', 'UHD');
@@ -270,19 +262,10 @@ const inputKeyword = () => {
   });
 };
 // 切换搜索引擎
-const changeSE = index => {
-  less
-    .modifyVars({ '@SE-index': index })
-    .then(() => {
-      console.log('成功回调');
-    })
-    .catch(err => {
-      console.error(err);
-    });
-  // 以上代码没生效
-  SEIndex.value = index;
+const changeSE = key => {
+  suggestionStore.setCurrentSEKeys(key);
   showCover.value = true;
-  localStorage.setItem('SEIndex', index);
+  localStorage.setItem('SE', key);
   setTimeout(() => {
     showCover.value = false;
   }, 100);
@@ -292,9 +275,9 @@ const changeSE = index => {
 const go = wd => {
   let url = '';
   if (wd) {
-    url = searchUrl[SEIndex.value] + wd;
+    url = currentSEInfo.value.searchPath + wd;
   } else {
-    url = searchUrl[SEIndex.value] + searchKeyword.value;
+    url = currentSEInfo.value.searchPath + searchKeyword.value;
   }
   window.open(url, '_blank');
 };
@@ -400,46 +383,7 @@ const copy = event => {
     event.preventDefault();
     event.stopPropagation();
   }
-  try {
-    if (window.navigator) {
-      window.navigator.clipboard
-        .writeText(quote.value.hitokoto)
-        .then(() => {
-          ElMessage({
-            message: '内容已复制到剪切板',
-            type: 'success',
-            offset: 10
-          });
-        })
-        .catch(err => {
-          console.error(err);
-        });
-    }
-  } catch (error) {
-    // 动态创建 textarea 标签
-    const textarea = document.createElement('textarea');
-    // 将该 textarea 设为 readonly 防止 iOS 下自动唤起键盘，同时将 textarea 移出可视区域
-    textarea.readOnly = 'readonly';
-    textarea.style.position = 'absolute';
-    textarea.style.left = '-9999px';
-    // 将要 copy 的值赋给 textarea 标签的 value 属性
-    textarea.value = quote.value.hitokoto;
-    // 将 textarea 插入到 body 中
-    document.body.appendChild(textarea);
-    // 选中值并复制
-    textarea.select();
-    const result = document.execCommand('Copy');
-    if (result) {
-      ElMessage({
-        message: '内容已复制到剪切板',
-        type: 'success',
-        offset: 10
-      });
-    } else {
-      console.error('复制文本失败');
-    }
-    document.body.removeChild(textarea);
-  }
+  saveToClipBoard(quote.value.hitokoto);
 };
 
 // 跳转到一言官网
@@ -498,11 +442,15 @@ const rightKeyMenu = e => {
   showRightClickMenu.value = true;
 
   const gapY = clientHeight - clientY;
-  rightClickMenu.value.style.top = gapY > 100 ? clientY + 'px' : 'auto';
-  rightClickMenu.value.style.bottom = gapY > 100 ? 'auto' : gapY + 'px';
+  // rightClickMenu.value.style.top = gapY > 100 ? clientY + 'px' : 'auto';
+  // rightClickMenu.value.style.bottom = gapY > 100 ? 'auto' : gapY + 'px';
+  const top = gapY > 100 ? clientY + 'px' : clientY - 100 + 'px';
+  rightClickMenu.value.style.top = top;
   const gapX = clientWidth - clientX;
-  rightClickMenu.value.style.left = gapX > 120 ? clientX + 'px' : 'auto';
-  rightClickMenu.value.style.right = gapX > 120 ? 'auto' : gapX + 'px';
+  // rightClickMenu.value.style.left = gapX > 120 ? clientX + 'px' : 'auto';
+  // rightClickMenu.value.style.right = gapX > 120 ? 'auto' : gapX + 'px';
+  const left = gapX > 120 ? clientX + 'px' : clientX - 120 + 'px';
+  rightClickMenu.value.style.left = left;
 };
 </script>
 

@@ -5,8 +5,10 @@ import router from './router';
 // import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import less from 'less';
+import { createPinia } from 'pinia';
 
 // createApp(App).use(store).use(router).use(ElementPlus).use(less).mount('#app');
 
 const Vue = createApp(App);
+Vue.use(createPinia());
 Vue.use(router).use(less).mount('#app');

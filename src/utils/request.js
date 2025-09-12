@@ -1,7 +1,7 @@
 import axios from 'axios';
-import store from '@/store';
+// import store from '@/store';
 import { ElMessage } from 'element-plus';
-import { getToken } from './auth';
+// import { getToken } from './auth';
 
 const service = axios.create({
   baseURL: process.env.APP_BASE_URL,
@@ -10,9 +10,9 @@ const service = axios.create({
 
 service.interceptors.request.use(
   config => {
-    if (store.getters.token) {
-      config.headers['X-token'] = getToken();
-    }
+    // if (store.getters.token) {
+    //   config.headers['X-token'] = getToken();
+    // }
     return config;
   },
   error => {
