@@ -283,32 +283,34 @@ const go = wd => {
 };
 
 // 更新一言内容
-// const refreshQuote = event => {
-//   if (event) {
-//     console.log(event);
-//     event.preventDefault();
-//     event.stopPropagation();
-//   }
-//   homePageRequest.getQuote().then(res => {
-//     quote.value = res;
-//   });
-// };
-// 固定的一言内容，开发的时候用这个，避免频繁请求
-const refreshQuote = () => {
-  quote.value = {
-    id: 5817,
-    uuid: '6e7cc075-3fa1-42c3-b215-fdfe6cc56988',
-    hitokoto: '若似月轮终皎洁，不辞冰雪为卿热。',
-    type: 'i',
-    from: '蝶恋花·辛苦最怜天上月',
-    from_who: '纳兰性德',
-    creator: 'a632079',
-    creator_uid: 1044,
-    reviewer: 1044,
-    commit_from: 'api',
-    created_at: '1586395491',
-    length: 16
-  };
+const refreshQuote = async event => {
+  if (event) {
+    console.log(event);
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      throw new Error('本地开发环境');
+    }
+    const res = await homePageRequest.getQuote();
+    quote.value = res;
+  } catch (error) {
+    quote.value = {
+      id: 5817,
+      uuid: '6e7cc075-3fa1-42c3-b215-fdfe6cc56988',
+      hitokoto: '若似月轮终皎洁，不辞冰雪为卿热。',
+      type: 'i',
+      from: '蝶恋花·辛苦最怜天上月',
+      from_who: '纳兰性德',
+      creator: 'a632079',
+      creator_uid: 1044,
+      reviewer: 1044,
+      commit_from: 'api',
+      created_at: '1586395491',
+      length: 16
+    };
+  }
 };
 /** 搜索框焦点事件，监听方向键↑↓ */
 const focusSearchInput = () => {

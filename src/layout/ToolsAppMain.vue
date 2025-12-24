@@ -63,8 +63,10 @@ const handleChangeTheme = isDark => {
   // document.documentElement.classList.toggle('theme-dark');
   if (isDark) {
     document.documentElement.classList.add('theme-dark');
+    document.documentElement.classList.add('dark');
   } else {
     document.documentElement.classList.remove('theme-dark');
+    document.documentElement.classList.remove('dark');
   }
 };
 
